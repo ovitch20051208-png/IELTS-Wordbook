@@ -1,0 +1,91 @@
+# IELTS-VOCAB/2
+# 通用格式示例，不是预装词库；仅在用户确认导入后写入数据库。
+# UTF-8；word / meaning / ipa / source 必填，其余字段可空。
+
+=== CARD ===
+word: apple
+meaning: 苹果
+ipa: /ˈæp.əl/
+example_en: I put an apple in my bag.
+example_zh: 我在包里放了一个苹果。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: book
+meaning: 书
+ipa: /bʊk/
+example_en: This book is easy to read.
+example_zh: 这本书很容易读。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: water
+meaning: 水
+ipa: /ˈwɔː.tə/
+example_en: Please drink some water.
+example_zh: 请喝一些水。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: read
+meaning: 阅读
+ipa: /riːd/
+example_en: I read a book every week.
+example_zh: 我每周读一本书。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: write
+meaning: 写
+ipa: /raɪt/
+example_en: Please write your name here.
+example_zh: 请在这里写下你的名字。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: listen
+meaning: 听
+ipa: /ˈlɪs.ən/
+example_en: Listen to the rain outside.
+example_zh: 听听外面的雨声。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: speak
+meaning: 说话
+ipa: /spiːk/
+example_en: We speak English in class.
+example_zh: 我们在课堂上说英语。
+source: 通用示例
+priority: B
+tags: 示例
+note:
+
+=== CARD ===
+word: learn
+meaning: 学习
+ipa: /lɜːn/
+example_en: We learn something new every day.
+example_zh: 我们每天都学到新东西。
+source: 通用示例
+priority: B
+tags: 示例
+note:
