@@ -1,12 +1,14 @@
 # IELTS Wordbook
 
-Windows 本地雅思背单词软件。Python 3.11+、PySide6 Qt Widgets、SQLite；简体中文界面，无账号、无服务器、无付费 API。安装好依赖及所需系统语音后，学习功能完全离线。
+适用于 64 位 Windows 10 / 11 的本地雅思背单词软件。简体中文界面，无账号、无服务器、无付费 API；日常学习可完全离线。**下载 Windows 打包版即可使用，无需安装 Python 或配置开发环境。**
 
-## 最快开始
+## 直接下载使用（推荐，无需 Python）
 
-源码用户请先安装 64 位 Python 3.11+，再双击 **`run_windows.bat`**；脚本会自动创建 `.venv` 并安装依赖，首次安装需要联网。
+1. 打开 [最新版本下载页面](https://github.com/ovitch20051208-png/github_wordcard/releases/latest)，在 **Assets** 中下载 **`IELTSWordbook-v1.0.0-Windows-x64.zip`**。
+2. 将压缩包**完整解压**到一个文件夹。
+3. 双击文件夹中的 **`IELTSWordbook.exe`** 启动。请保留它旁边的 `_internal` 文件夹。
 
-也可从 [GitHub Releases](https://github.com/ovitch20051208-png/github_wordcard/releases/latest) 下载 Windows 压缩包，完整解压后双击 **`IELTSWordbook.exe`**，无需安装 Python。请保留它旁边的 `_internal` 文件夹。
+以上步骤即可开始使用。英语朗读使用 Windows 自带的系统语音；缺少英语语音时，可按下方“本地英语朗读”说明安装，其余学习功能照常可用。
 
 第一次启动时，**词库、学习记录和测试历史均为空**。可在“单词库”新增词卡，或在“导入 / 导出与设置”中导入自己的 TXT。首页 **“导入示例词卡”** 提供 8 张通用格式示例，经预览并确认后才写入；软件不会自动导入任何词库。
 
@@ -22,7 +24,9 @@ Windows 本地雅思背单词软件。Python 3.11+、PySide6 Qt Widgets、SQLite
 
 升级源码或重新打包不会移动或清空这个数据库。测试均使用项目内隔离数据库，没有把模拟测试成绩写入正式词库。
 
-## 从零安装（Windows 10 / 11）
+## 从源码运行（开发者或有需要的用户，可选）
+
+如果希望修改代码或自行运行源码，可使用以下方式。**只有源码运行需要安装 Python 3.11 或更新版本**；使用上面的 Windows 打包版可直接跳过本节。
 
 1. 安装 [64 位 Python 3.11 或更新版本](https://www.python.org/downloads/windows/)，勾选 **Add python.exe to PATH**。本项目实际验证版本为 Python 3.12.10。
 2. 下载并完整解压源码（或使用 Git 克隆），将整个项目放在一个可写目录，保留 `IELTS_Wordbook_Import_Template.txt` 和 `wordbook/data/`。
@@ -37,7 +41,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
-依赖锁定为本次验证过的 PySide6 6.11.2、pywin32 312。运行不需要管理员权限。如安装报错，请检查 Python 是否为 64 位、网络连接及终端错误输出。
+源码使用 Python、PySide6 Qt Widgets 和 SQLite，依赖锁定为本次验证过的 PySide6 6.11.2、pywin32 312。运行不需要管理员权限。如源码安装报错，请检查 Python 是否为 64 位、网络连接及终端错误输出。
 
 ## 日常使用
 
@@ -96,7 +100,7 @@ v2 的 `word`、`meaning`、`ipa`、`source` 必填；多个读音可写 `/.../�
 - **恢复完整备份**：需确认；先校验版本、结构、完整性及关联，再自动保存 `before_restore_*.db` 于数据目录，随后替换现有数据。可从自动备份再次恢复。
 - 一次只允许一个使用相同数据目录的程序实例。关闭软件后迁移文件时，建议优先使用上述完整备份；不要只复制正在使用的 `.db` 而漏掉 WAL。
 
-## 测试与实际验收
+## 开发者：测试与实际验收
 
 双击 `test_windows.bat`，或执行：
 
@@ -114,7 +118,7 @@ v2 的 `word`、`meaning`、`ipa`、`source` 必填；多个读音可写 `/.../�
 
 其报告和 Windows 原生界面截图写入 `.test-artifacts/`。普通测试使用 Qt offscreen，Windows 下该后端可能不加载系统字体，其截图不代表真实窗口；原生窗口截图以 `windows_*.png` 为准。
 
-## 打包为 exe
+## 开发者：自行打包为 exe
 
 在 Windows 上双击 `build_windows.bat`：安装打包依赖 → 跑完整测试 → PyInstaller 打包。或手动执行：
 
