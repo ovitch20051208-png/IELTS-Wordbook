@@ -1,15 +1,16 @@
 # 单词 TXT 导入标准与 ChatGPT 提示词
 
-今后请使用 **IELTS-VOCAB/2**，文件编码 **UTF-8**。软件也兼容原来的 v1 文件，但 v2 会把缺失音标或来源的卡片明确列为错误，避免再次导入空音标。
+今后请使用 **IELTS-VOCAB/3**，文件编码 **UTF-8**。新增 `pos` 词性字段：单词使用 `n.`、`v.`、`adj.`、`adv.` 等缩写，词组留空。软件继续兼容原来的 v1 / v2 文件。
 
 可以直接参考 [通用 TXT 示例模板](IELTS_Wordbook_Import_Template.txt)。软件首次启动时词库为空，请导入自己的词单或手动新增词卡。
 
 ## 固定格式
 
 ```text
-# IELTS-VOCAB/2
+# IELTS-VOCAB/3
 === CARD ===
 word: amass
+pos: v.
 meaning: 积累；聚集（大量）
 ipa: /əˈmæs/
 example_en: The sisters amassed a valuable art collection.
@@ -21,6 +22,7 @@ note: 英式音标参考 Cambridge UK。
 
 === CARD ===
 word: therapeutic
+pos: adj.
 meaning: 治疗性的；有助于身心健康的
 ipa: /ˌθer.əˈpjuː.tɪk/
 example_en: Many people find gardening therapeutic.
@@ -34,6 +36,7 @@ note: 英式音标参考 Cambridge UK。
 | 字段 | 规则 |
 | --- | --- |
 | word | 必填；英文单词或完整短语，保留空格、连字符、撇号 |
+| pos | 单词必填，词组留空；使用 n. / v. / adj. / adv. 等缩写；多种适用词性写 `n.; v.` |
 | meaning | 必填；与当前语境及词性对应的中文释义 |
 | ipa | 必填；英式 IPA，用 `/.../` 包住；不能写美式音标、中文谐音或占位符 |
 | example_en | 英文例句；建议提供；一整句写在同一物理行 |
@@ -47,8 +50,18 @@ note: 英式音标参考 Cambridge UK。
 
 ```text
 word: stimulus / stimuli
+pos: n.
 ipa: /ˈstɪm.jə.ləs/；/ˈstɪm.jʊ.laɪ/
 ```
+
+词组保留空的 `pos:` 行，不写“词组”“phr.”或“动词短语”：
+
+```text
+word: coincide with
+pos:
+```
+
+`one-sided`、`labour-intensive` 这类带连字符的单词仍可填 `adj.`；`stimulus / stimuli` 是单复数并列，填 `n.`。请按当前释义和例句选择词性，不必罗列这个词的所有词典用法。旧版文件缺少 pos 仍可导入；未知新词可在详情中手动补充。
 
 ## 来源和重复词如何处理
 
@@ -72,10 +85,13 @@ ipa: /ˈstɪm.jə.ləs/；/ˈstɪm.jʊ.laɪ/
 我这次的题库来源是：【在这里填写，例如 剑21T1】。
 
 严格要求：
-1. 第一行必须是 # IELTS-VOCAB/2。不要输出 Markdown 代码围栏、编号、表格或软件不支持的字段。
-2. 每张卡以 === CARD === 开始，包含以下九个字段，每个字段只占一行：
-   word / meaning / ipa / example_en / example_zh / source / priority / tags / note。
-3. word、meaning、ipa、source 不得为空。其余字段可空，但建议提供语境例句及翻译。
+1. 第一行必须是 # IELTS-VOCAB/3。不要输出 Markdown 代码围栏、编号、表格或软件不支持的字段。
+2. 每张卡以 === CARD === 开始，包含以下十个字段，每个字段只占一行：
+   word / pos / meaning / ipa / example_en / example_zh / source / priority / tags / note。
+3. word、meaning、ipa、source 不得为空。单词的 pos 也必须填写；词组的 pos 必须留空。
+   pos 使用 n.、v.、adj.、adv. 等常见缩写，多个适用词性用分号分隔，如 n.; v.。
+   只按当前释义和例句标注，不穷举所有词典词性；不要给词组写 phr.、NP、VP 或“名词短语”。
+   带连字符的单词仍标词性；stimulus / stimuli 这类单复数并列填 n.。
 4. ipa 必须使用英式英语 IPA，并写成 /.../。请核对 Cambridge 的 UK 或 Collins 的 British English 等可靠词典；不要混入 US 音标，不要用拼写猜音标，不要用中文谐音。
 5. 按本词实际词性、词形和语境选择读音，例如动词 import、动词 advocate、过去分词 heightened / underestimated，以及复数词尾，不要直接照搬其他词性的读音或词干音标。
 6. 短语也应有完整的英式参考音标。如果是根据组成词整理的宽式读法，请在 note 中注明“短语参考读法，重音和弱读随语境变化”，不要冒充词典提供的整句标音。能查到整条短语的可靠音标时优先使用。
@@ -89,6 +105,7 @@ ipa: /ˈstɪm.jə.ləs/；/ˈstɪm.jʊ.laɪ/
 固定字段样式：
 === CARD ===
 word: amass
+pos: v.
 meaning: 积累；聚集（大量）
 ipa: /əˈmæs/
 example_en: The sisters amassed a valuable art collection.

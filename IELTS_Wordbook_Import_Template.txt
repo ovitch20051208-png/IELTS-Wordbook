@@ -1,9 +1,10 @@
-# IELTS-VOCAB/2
+# IELTS-VOCAB/3
 # 通用格式示例，不是预装词库；仅在用户确认导入后写入数据库。
-# UTF-8；word / meaning / ipa / source 必填，其余字段可空。
+# UTF-8；word / pos / meaning / ipa / source 必填（词组的 pos 留空），其余字段可空。
 
 === CARD ===
 word: apple
+pos: n.
 meaning: 苹果
 ipa: /ˈæp.əl/
 example_en: I put an apple in my bag.
@@ -15,6 +16,7 @@ note:
 
 === CARD ===
 word: book
+pos: n.
 meaning: 书
 ipa: /bʊk/
 example_en: This book is easy to read.
@@ -26,6 +28,7 @@ note:
 
 === CARD ===
 word: water
+pos: n.
 meaning: 水
 ipa: /ˈwɔː.tə/
 example_en: Please drink some water.
@@ -37,6 +40,7 @@ note:
 
 === CARD ===
 word: read
+pos: v.
 meaning: 阅读
 ipa: /riːd/
 example_en: I read a book every week.
@@ -48,6 +52,7 @@ note:
 
 === CARD ===
 word: write
+pos: v.
 meaning: 写
 ipa: /raɪt/
 example_en: Please write your name here.
@@ -59,6 +64,7 @@ note:
 
 === CARD ===
 word: listen
+pos: v.
 meaning: 听
 ipa: /ˈlɪs.ən/
 example_en: Listen to the rain outside.
@@ -70,6 +76,7 @@ note:
 
 === CARD ===
 word: speak
+pos: v.
 meaning: 说话
 ipa: /spiːk/
 example_en: We speak English in class.
@@ -81,6 +88,7 @@ note:
 
 === CARD ===
 word: learn
+pos: v.
 meaning: 学习
 ipa: /lɜːn/
 example_en: We learn something new every day.

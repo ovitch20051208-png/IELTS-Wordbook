@@ -65,6 +65,7 @@ def main():
             page.session.cards[0] = db.list_cards(search="apple")[0]
             page.render()
             snapshot("front")
+            report["word_pos_visible"] = page.pos_label.isVisible() and page.pos_label.text() == "n."
             if "--audio" in sys.argv:
                 page.word_speaker.click()
                 for _ in range(30):
@@ -95,8 +96,10 @@ def main():
             for _ in checks:
                 page.undo()
             report["all_ipa_filled"] = all(card.ipa for card in db.list_cards())
+            report["all_pos_filled"] = all(card.pos for card in db.list_cards())
             page.session.end()
-            report["success"] = db.stats()["全部"] == 8 and report["all_ipa_filled"] and not report["tts_errors"]
+            report["success"] = (db.stats()["全部"] == 8 and report["all_ipa_filled"]
+                                 and report["all_pos_filled"] and report["word_pos_visible"] and not report["tts_errors"])
         except Exception as exc:
             report["success"] = False
             report["error"] = repr(exc)

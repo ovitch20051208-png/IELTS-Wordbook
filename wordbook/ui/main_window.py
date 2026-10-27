@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self.initial_button)
         row.addStretch()
         layout.addLayout(row)
-        layout.addWidget(label("掌握度随最近一次判定更新。正面也可直接自评，点击“查看答案”可阅读释义。\n首次启动词库为空，可新增词卡或导入自己的 TXT；示例词卡需手动确认导入。"))
+        layout.addWidget(label("掌握度随最近一次判定更新。正面也可直接自评，点击“查看答案”可阅读释义。\n首次启动词库为空，可新增词卡或导入自己的 TXT；示例词卡需手动确认导入。\n单词可填写 n. / v. / adj. 等词性，词组留空；推荐 IELTS-VOCAB/3 格式。"))
         layout.addStretch()
         self.tabs.addTab(page, "首页 / 概览")
 
@@ -129,14 +129,15 @@ class MainWindow(QMainWindow):
         layout.addLayout(filters)
         self.library_count = label()
         layout.addWidget(self.library_count)
-        self.library_model = TableModel([("英文单词 / 短语", "word"), ("英式音标", "ipa"), ("中文释义", "meaning"), ("掌握度", "status"), ("重点", "priority"), ("来源", "source"), ("标签", "tags")])
+        self.library_model = TableModel([("英文单词 / 短语", "word"), ("词性", "pos"), ("英式音标", "ipa"), ("中文释义", "meaning"), ("掌握度", "status"), ("重点", "priority"), ("来源", "source"), ("标签", "tags")])
         self.library_view = table(self.library_model)
         self.library_view.setColumnWidth(0, 225)
-        self.library_view.setColumnWidth(1, 210)
-        self.library_view.setColumnWidth(2, 220)
-        self.library_view.setColumnWidth(3, 110)
-        self.library_view.setColumnWidth(4, 65)
-        self.library_view.setColumnWidth(5, 140)
+        self.library_view.setColumnWidth(1, 85)
+        self.library_view.setColumnWidth(2, 200)
+        self.library_view.setColumnWidth(3, 210)
+        self.library_view.setColumnWidth(4, 110)
+        self.library_view.setColumnWidth(5, 65)
+        self.library_view.setColumnWidth(6, 140)
         self.library_view.doubleClicked.connect(lambda _: self.edit_card())
         layout.addWidget(self.library_view, 1)
         layout.addWidget(label("双击查看 / 编辑，详情中可试听单词和英文例句。A、五星阅读词及阅读高频1300可用上方筛选专门复习。", "color:#64748b"))
@@ -364,7 +365,7 @@ class MainWindow(QMainWindow):
     def choose_import(self):
         if not self.allow_change():
             return
-        path, _ = QFileDialog.getOpenFileName(self, "选择单词 TXT（推荐 IELTS-VOCAB/2，含英式音标）", "", "单词 TXT (*.txt);;所有文件 (*)")
+        path, _ = QFileDialog.getOpenFileName(self, "选择单词 TXT（推荐 IELTS-VOCAB/3，含词性与音标）", "", "单词 TXT (*.txt);;所有文件 (*)")
         if path:
             self.import_path(path)
 

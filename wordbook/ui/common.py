@@ -61,6 +61,8 @@ class TableModel(QAbstractTableModel):
                 return local_time(value)
             if key == "ipa" and not value:
                 return "音标待补充"
+            if key == "pos" and not isinstance(row, dict):
+                return row.pos_display
             return str(value) if value is not None else "—"
         if role == Qt.ItemDataRole.ForegroundRole and key == "status":
             return QColor({"已掌握": "#127658", "有一点印象": "#a56509", "完全记不得": "#c34343"}.get(value, "#64748b"))

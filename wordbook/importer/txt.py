@@ -1,5 +1,5 @@
 from pathlib import Path
-from wordbook.models.card import Card, ParseResult, TEXT_FIELDS, split_tags, normalize_source
+from wordbook.models.card import Card, ParseResult, TEXT_FIELDS, split_tags, normalize_source, is_phrase, pos_for_word
 
 
 def parse_text(text: str) -> ParseResult:
@@ -13,14 +13,21 @@ def parse_text(text: str) -> ParseResult:
         if fields is None:
             return
         result.total += 1
-        required = ("word", "meaning", "ipa", "source") if version == 2 else ("word", "meaning")
+        required = ("word", "meaning", "ipa", "source") if version >= 2 else ("word", "meaning")
+        if version >= 3 and fields.get("word") and not is_phrase(fields["word"]):
+            required += ("pos",)
         missing = [n for n in required if not fields.get(n, "").strip()]
         if missing:
             problems.append("缺少必填字段 " + ", ".join(missing))
-        if version == 2 and fields.get("ipa"):
+        if version >= 2 and fields.get("ipa"):
             import re
             if not re.fullmatch(r"/[^/]+/(?:\s*[;；]\s*/[^/]+/)*", fields["ipa"]):
                 problems.append("ipa 须使用 /英式音标/；多个读音用中文分号分隔")
+        try:
+            if "pos" in fields:
+                fields["pos"] = pos_for_word(fields.get("word", ""), fields["pos"])
+        except ValueError as exc:
+            problems.append(str(exc))
         if problems:
             result.errors.append(f"第 {result.total} 张卡（第 {start} 行）：" + "；".join(problems))
         else:
@@ -34,7 +41,7 @@ def parse_text(text: str) -> ParseResult:
         if line.startswith("# IELTS-VOCAB/"):
             if fields is not None:
                 problems.append(f"第 {number} 行：格式版本声明只能放在第一张卡之前")
-            elif line in ("# IELTS-VOCAB/1", "# IELTS-VOCAB/2"):
+            elif line in ("# IELTS-VOCAB/1", "# IELTS-VOCAB/2", "# IELTS-VOCAB/3"):
                 version = int(line[-1])
             else:
                 result.errors.append(f"第 {number} 行：不支持的导入版本 {line}")
@@ -74,6 +81,8 @@ def parse_file(path: str | Path) -> ParseResult:
 
 def export_text(cards: list[Card]) -> str:
     version = 2 if all(c.ipa.strip() and c.source.strip() for c in cards) else 1
+    if version == 2 and all(is_phrase(c.word) or c.pos.strip() for c in cards):
+        version = 3
     lines = [f"# IELTS-VOCAB/{version}", "# UTF-8；学习状态与历史请使用完整 SQLite 备份。", ""]
     for card in cards:
         card.validate()

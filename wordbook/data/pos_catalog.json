@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "entries": {
+    "apple": {
+      "pos": "n.",
+      "meaning": "苹果"
+    },
+    "book": {
+      "pos": "n.",
+      "meaning": "书"
+    },
+    "water": {
+      "pos": "n.",
+      "meaning": "水"
+    },
+    "read": {
+      "pos": "v.",
+      "meaning": "阅读"
+    },
+    "write": {
+      "pos": "v.",
+      "meaning": "写"
+    },
+    "listen": {
+      "pos": "v.",
+      "meaning": "听"
+    },
+    "speak": {
+      "pos": "v.",
+      "meaning": "说话"
+    },
+    "learn": {
+      "pos": "v.",
+      "meaning": "学习"
+    }
+  }
+}

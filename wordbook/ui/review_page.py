@@ -3,7 +3,7 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox,
     QSpinBox, QStackedWidget, QScrollArea, QProgressBar, QMessageBox, QFrame)
 
-from wordbook.models.card import STATUSES, GRADES
+from wordbook.models.card import STATUSES, GRADES, is_phrase
 from wordbook.services.review import ReviewSession
 from wordbook.services.catalog import ipa_reference
 from wordbook.ui.common import label, button
@@ -84,7 +84,11 @@ class ReviewPage(QWidget):
         word_row.addWidget(self.word_speaker)
         contents.addLayout(word_row)
         self.ipa = label("", "font-size:17px;color:#64748b")
-        contents.addWidget(self.ipa)
+        self.pos_label = label("", "font-size:16px;color:#176f68;font-weight:600")
+        pronunciation_row = QHBoxLayout()
+        pronunciation_row.addWidget(self.pos_label)
+        pronunciation_row.addWidget(self.ipa, 1)
+        contents.addLayout(pronunciation_row)
         self.back = QWidget()
         back_layout = QVBoxLayout(self.back)
         back_layout.setContentsMargins(0, 12, 0, 0)
@@ -209,6 +213,8 @@ class ReviewPage(QWidget):
         self.word_label.setText(card.word if not session.paused else "已暂停")
         self.meaning.setText(card.meaning)
         self.ipa.setText(card.ipa_display)
+        self.pos_label.setText(card.pos)
+        self.pos_label.setVisible(bool(card.pos) and not is_phrase(card.word) and not session.paused)
         self.ipa.setToolTip(ipa_reference(card.word, card.ipa))
         self.ipa.setVisible(not session.paused)
         self.example.setText(card.example_en or "暂无英文例句")

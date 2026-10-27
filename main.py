@@ -11,6 +11,7 @@ def main():
     from wordbook.storage.database import Database
     from wordbook.services.tts import SpeechService
     from wordbook.services.catalog import upgrade_catalog
+    from wordbook.services.parts_of_speech import fill_missing_pos
     from wordbook.ui.main_window import MainWindow
 
     app = QApplication(sys.argv)
@@ -35,6 +36,9 @@ def main():
         content_update = upgrade_catalog(db)
         if content_update["backup"]:
             logging.info("Content upgrade: %s", content_update)
+        pos_update = fill_missing_pos(db)
+        if pos_update["backup"]:
+            logging.info("POS update: %s", pos_update)
         db.interrupt_sessions()
         speech = SpeechService()
         window = MainWindow(db, speech)

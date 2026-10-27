@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit,
     QPlainTextEdit, QComboBox, QDialogButtonBox, QMessageBox, QWidget, QScrollArea)
 
-from wordbook.models.card import Card, STATUSES, TEXT_FIELDS
+from wordbook.models.card import Card, STATUSES, TEXT_FIELDS, POS_OPTIONS, is_phrase
 from wordbook.ui.common import label, button, local_time, TableModel, table
 
 
@@ -21,10 +21,17 @@ class CardDialog(QDialog):
         form = QFormLayout(body)
         form.setSpacing(12)
         self.fields = {}
-        names = ("英文单词 / 短语 *", "中文释义 *", "英式音标", "英文语境例句", "例句中文翻译", "来源（如 剑21T1 | 剑20T3）", "优先级", "标签（英文逗号分隔）", "备注")
+        names = ("英文单词 / 短语 *", "词性（单词填写，词组留空）", "中文释义 *", "英式音标", "英文语境例句", "例句中文翻译", "来源（如 剑21T1 | 剑20T3）", "优先级", "标签（英文逗号分隔）", "备注")
         for field, title in zip(TEXT_FIELDS, names):
             value = getattr(card, field) if card else ""
-            edit = QPlainTextEdit(value) if field in ("meaning", "example_en", "example_zh", "note") else QLineEdit(value)
+            if field == "pos":
+                edit = QComboBox()
+                edit.setEditable(True)
+                edit.addItems(POS_OPTIONS)
+                edit.setCurrentText(value)
+                edit.lineEdit().setPlaceholderText("n. / v. / adj. / adv.；多个词性用分号分隔")
+            else:
+                edit = QPlainTextEdit(value) if field in ("meaning", "example_en", "example_zh", "note") else QLineEdit(value)
             if isinstance(edit, QPlainTextEdit):
                 edit.setFixedHeight(70)
                 edit.setTabChangesFocus(True)
@@ -44,6 +51,8 @@ class CardDialog(QDialog):
                 form.addRow(title, edit)
         self.fields["ipa"].setPlaceholderText("音标待补充（不会自动生成）")
         self.fields["priority"].setPlaceholderText("A / B 或其他自定义等级")
+        self.fields["word"].textChanged.connect(self.update_pos_control)
+        self.update_pos_control()
         self.status = QComboBox()
         self.status.addItems(STATUSES)
         self.status.setCurrentText(card.status if card else "未测试")
@@ -68,7 +77,17 @@ class CardDialog(QDialog):
 
     def value(self, field):
         widget = self.fields[field]
+        if isinstance(widget, QComboBox):
+            return widget.currentText().strip()
         return (widget.toPlainText() if isinstance(widget, QPlainTextEdit) else widget.text()).strip()
+
+    def update_pos_control(self):
+        phrase = is_phrase(self.value("word"))
+        control = self.fields["pos"]
+        control.setEnabled(not phrase)
+        if phrase:
+            control.setCurrentText("")
+        control.setToolTip("词组不需要词性，此项保持空白。" if phrase else "按当前释义填写缩写，例如 n.、v.、adj.、adv.。")
 
     def save(self):
         try:
@@ -118,7 +137,7 @@ class ImportPreview(QDialog):
         layout.addWidget(self.policy)
         self.counts = label("", "font-size:16px;font-weight:600")
         layout.addWidget(self.counts)
-        model = TableModel([("英文", "word"), ("中文释义", "meaning"), ("英式音标", "ipa"), ("来源", "source"), ("标签", "tags")])
+        model = TableModel([("英文", "word"), ("词性", "pos"), ("中文释义", "meaning"), ("英式音标", "ipa"), ("来源", "source"), ("标签", "tags")])
         model.replace(result.cards)
         layout.addWidget(table(model), 1)
         errors = QPlainTextEdit("\n".join(result.errors) or "没有发现格式错误。")

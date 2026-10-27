@@ -26,3 +26,6 @@ dist/
 .vscode/
 Thumbs.db
 .DS_Store
+IELTS_Wordbook_*_With_POS.txt
+IELTS_Wordbook_149_*.txt
+IELTS_Wordbook_149_*.json

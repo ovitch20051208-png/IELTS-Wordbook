@@ -86,7 +86,7 @@ class V11Tests(unittest.TestCase):
         self.assertEqual(self.db.stats()["全部"], 0)
         self.db.import_cards(result.cards)
         self.assertEqual(self.db.import_cards(result.cards)["新增"], 0)
-        self.assertTrue(export_text(self.db.list_cards()).startswith("# IELTS-VOCAB/2"))
+        self.assertTrue(export_text(self.db.list_cards()).startswith("# IELTS-VOCAB/3"))
         self.assertEqual(len(parse_text(export_text(self.db.list_cards())).cards), 8)
 
     def test_fresh_start_has_no_words_history_sessions_or_backups(self):

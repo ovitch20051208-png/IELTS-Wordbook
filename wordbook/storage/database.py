@@ -7,7 +7,10 @@ import random
 import sqlite3
 import uuid
 
-from wordbook.models.card import Card, GRADES, STATUSES, TEXT_FIELDS, normalize_word, normalize_source, now, split_sources, split_tags
+from wordbook.models.card import Card, GRADES, STATUSES, TEXT_FIELDS, normalize_word, normalize_source, now, split_sources, split_tags, pos_for_word
+
+CARD_TEXT_FIELDS = tuple(name for name in TEXT_FIELDS if name != "pos")
+CARD_SELECT = "SELECT c.*,COALESCE(p.pos,'') AS pos FROM cards c LEFT JOIN card_pos p ON p.word_id=c.id"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS cards (
@@ -21,6 +24,9 @@ CREATE TABLE IF NOT EXISTS cards (
 CREATE INDEX IF NOT EXISTS idx_cards_status ON cards(status);
 CREATE INDEX IF NOT EXISTS idx_cards_source ON cards(source);
 CREATE INDEX IF NOT EXISTS idx_cards_priority ON cards(priority);
+CREATE TABLE IF NOT EXISTS card_pos (
+ word_id TEXT PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE,
+ pos TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS review_sessions (
  id TEXT PRIMARY KEY, started_at TEXT NOT NULL, ended_at TEXT,
  mode TEXT NOT NULL, total INTEGER NOT NULL, state TEXT NOT NULL DEFAULT 'active');
@@ -34,7 +40,7 @@ CREATE TABLE IF NOT EXISTS review_history (
 CREATE INDEX IF NOT EXISTS idx_history_word_time ON review_history(word_id, id);
 CREATE INDEX IF NOT EXISTS idx_history_session ON review_history(session_id);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-PRAGMA user_version=1;
+PRAGMA user_version=2;
 """
 
 
@@ -42,9 +48,16 @@ class Database:
     def __init__(self, path: str | Path):
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.schema_backup = None
         with self.connection() as conn:
-            if conn.execute("PRAGMA user_version").fetchone()[0] > 1:
+            version = conn.execute("PRAGMA user_version").fetchone()[0]
+            if version > 2:
                 raise ValueError("数据库来自更新版本，请升级软件后再打开。")
+            needs_migration = version == 1 and conn.execute("SELECT 1 FROM sqlite_master WHERE name='card_pos' AND type='table'").fetchone() is None
+        if needs_migration:
+            self.schema_backup = self.path.with_name("before_v1_2_schema_" + uuid.uuid4().hex[:12] + ".db")
+            self.backup(self.schema_backup)
+        with self.connection() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(SCHEMA)
 
@@ -65,7 +78,7 @@ class Database:
 
     def get(self, word_id: str) -> Card:
         with self.connection() as conn:
-            row = conn.execute("SELECT * FROM cards WHERE id=?", (word_id,)).fetchone()
+            row = conn.execute(CARD_SELECT + " WHERE c.id=?", (word_id,)).fetchone()
         if row is None:
             raise ValueError("该词卡已经不存在。")
         return self._card(row)
@@ -79,7 +92,7 @@ class Database:
             clauses.append("priority=?")
             args.append(priority)
         with self.connection() as conn:
-            rows = conn.execute("SELECT * FROM cards" + (" WHERE " + " AND ".join(clauses) if clauses else "") + " ORDER BY word_key", args).fetchall()
+            rows = conn.execute(CARD_SELECT + (" WHERE " + " AND ".join(clauses) if clauses else "") + " ORDER BY word_key", args).fetchall()
         cards = [self._card(r) for r in rows]
         query = normalize_word(search)
         return [c for c in cards if (not query or query in normalize_word(c.word + " " + c.meaning))
@@ -100,12 +113,14 @@ class Database:
 
     @staticmethod
     def _insert(conn, card: Card):
-        card = replace(card, source=normalize_source(card.source))
+        card = replace(card, source=normalize_source(card.source), pos=pos_for_word(card.word, card.pos))
         card.validate()
         values = asdict(card)
+        pos = values.pop("pos")
         values.update(id=card.id or str(uuid.uuid4()), created_at=card.created_at or now(), updated_at=now(), word_key=normalize_word(card.word))
         columns = list(values)
         conn.execute(f"INSERT INTO cards ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})", [values[k] for k in columns])
+        conn.execute("INSERT INTO card_pos(word_id,pos) VALUES (?,?)", (values["id"], pos))
         return values["id"]
 
     def add(self, card: Card) -> str:
@@ -116,15 +131,16 @@ class Database:
             raise ValueError("这个英文单词/短语已存在，请编辑原词卡。") from exc
 
     def update(self, word_id: str, card: Card):
-        card = replace(card, source=normalize_source(card.source))
+        card = replace(card, source=normalize_source(card.source), pos=pos_for_word(card.word, card.pos))
         card.validate()
         try:
             with self.connection() as conn:
-                conn.execute("UPDATE cards SET " + ",".join(f"{f}=?" for f in TEXT_FIELDS) + ",word_key=?,updated_at=? WHERE id=?",
-                             [getattr(card, f) for f in TEXT_FIELDS] + [normalize_word(card.word), now(), word_id])
+                conn.execute("UPDATE cards SET " + ",".join(f"{f}=?" for f in CARD_TEXT_FIELDS) + ",word_key=?,updated_at=? WHERE id=?",
+                             [getattr(card, f) for f in CARD_TEXT_FIELDS] + [normalize_word(card.word), now(), word_id])
                 current = conn.execute("SELECT status FROM cards WHERE id=?", (word_id,)).fetchone()
                 if current is None:
                     raise ValueError("该词卡已经不存在。")
+                conn.execute("INSERT INTO card_pos(word_id,pos) VALUES (?,?) ON CONFLICT(word_id) DO UPDATE SET pos=excluded.pos", (word_id, card.pos))
                 if current[0] != card.status:
                     self._record(conn, word_id, card.status, None, "manual")
         except sqlite3.IntegrityError as exc:
@@ -151,9 +167,9 @@ class Database:
             raise ValueError("未知的导入策略。")
         counts = {"新增": 0, "更新": 0, "重复": 0}
         for card in cards:
-            card = replace(card, source=normalize_source(card.source))
+            card = replace(card, source=normalize_source(card.source), pos=pos_for_word(card.word, card.pos))
             card.validate()
-            row = conn.execute("SELECT * FROM cards WHERE word_key=?", (normalize_word(card.word),)).fetchone()
+            row = conn.execute(CARD_SELECT + " WHERE word_key=?", (normalize_word(card.word),)).fetchone()
             if row is None:
                 cls._insert(conn, card)
                 counts["新增"] += 1
@@ -165,8 +181,9 @@ class Database:
                         source=" | ".join(dict.fromkeys(split_sources(existing.source) + split_sources(card.source))),
                         tags=",".join(dict.fromkeys(split_tags(existing.tags) + split_tags(card.tags))))
                 if any(getattr(existing, f) != getattr(merged, f) for f in TEXT_FIELDS):
-                    conn.execute("UPDATE cards SET " + ",".join(f"{f}=?" for f in TEXT_FIELDS) + ",updated_at=? WHERE id=?",
-                                 [getattr(merged, f) for f in TEXT_FIELDS] + [now(), existing.id])
+                    conn.execute("UPDATE cards SET " + ",".join(f"{f}=?" for f in CARD_TEXT_FIELDS) + ",updated_at=? WHERE id=?",
+                                 [getattr(merged, f) for f in CARD_TEXT_FIELDS] + [now(), existing.id])
+                    conn.execute("INSERT INTO card_pos(word_id,pos) VALUES (?,?) ON CONFLICT(word_id) DO UPDATE SET pos=excluded.pos", (existing.id, pos_for_word(merged.word, merged.pos)))
                     counts["更新"] += 1
                 else:
                     counts["重复"] += 1
@@ -287,16 +304,21 @@ class Database:
         try:
             if incoming.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise ValueError("备份文件完整性检查未通过。")
-            if incoming.execute("PRAGMA user_version").fetchone()[0] != 1:
-                raise ValueError("这不是兼容的 IELTS Wordbook 完整备份（需要版本 1）。")
+            backup_version = incoming.execute("PRAGMA user_version").fetchone()[0]
+            if backup_version not in (1, 2):
+                raise ValueError("这不是兼容的 IELTS Wordbook 完整备份（支持版本 1 / 2）。")
             required = {"cards", "review_history", "review_sessions", "settings"}
+            if backup_version == 2:
+                required.add("card_pos")
             tables = {r[0] for r in incoming.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             if not required <= tables or incoming.execute("PRAGMA foreign_key_check").fetchone():
                 raise ValueError("备份缺少必要数据表或历史关联损坏。")
             # Check all expected columns, card data and normalized unique keys.
-            expected = {"cards": set(asdict(Card("a", "b"))) | {"word_key"},
+            expected = {"cards": (set(asdict(Card("a", "b"))) - {"pos"}) | {"word_key"},
                         "review_history": {"id", "word_id", "word_snapshot", "status", "reviewed_at", "session_id", "origin", "undone_at", "previous_status", "previous_count", "previous_reviewed_at"},
                         "review_sessions": {"id", "started_at", "ended_at", "mode", "total", "state"}, "settings": {"key", "value"}}
+            if "card_pos" in tables:
+                expected["card_pos"] = {"word_id", "pos"}
             for table, names in expected.items():
                 if {r[1] for r in incoming.execute(f"PRAGMA table_info({table})")} != names:
                     raise ValueError(f"备份的 {table} 表结构不兼容。")
@@ -306,13 +328,23 @@ class Database:
                 if row["word_key"] != normalize_word(row["word"]) or row["word_key"] in keys:
                     raise ValueError("备份含有损坏或重复的英文词卡。")
                 keys.add(row["word_key"])
+            if "card_pos" in tables:
+                for row in incoming.execute("SELECT c.word,p.pos FROM card_pos p JOIN cards c ON c.id=p.word_id"):
+                    if pos_for_word(row["word"], row["pos"]) != row["pos"]:
+                        raise ValueError("备份含有无效词性，或为词组填写了词性。")
             for row in incoming.execute("SELECT value FROM settings"):
                 json.loads(row[0])
-            safety = self.path.with_name("before_restore_" + uuid.uuid4().hex[:12] + ".db")
-            self.backup(safety)
-            # SQLite backup API also handles the live WAL safely; no raw .db copying.
-            with self.connection() as target:
-                incoming.backup(target)
+            prepared = sqlite3.connect(":memory:")
+            try:
+                incoming.backup(prepared)
+                prepared.executescript(SCHEMA)
+                safety = self.path.with_name("before_restore_" + uuid.uuid4().hex[:12] + ".db")
+                self.backup(safety)
+                # Upgrade legacy backups before replacing the live database.
+                with self.connection() as target:
+                    prepared.backup(target)
+            finally:
+                prepared.close()
             return safety
         except sqlite3.DatabaseError as exc:
             raise ValueError("文件不是有效的 IELTS Wordbook SQLite 备份。") from exc

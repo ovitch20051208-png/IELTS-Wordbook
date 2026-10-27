@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
 from wordbook.importer.txt import parse_file, parse_text
 from wordbook.storage.database import Database
+from wordbook.models.card import Card
 from wordbook.services.tts import SpeechService, Voice, preferred_voice
 from wordbook.ui.main_window import MainWindow
 from wordbook.ui.dialogs import CardDialog, ImportPreview
@@ -131,6 +132,31 @@ class UiTests(unittest.TestCase):
         self.assertEqual(dialog.result(), QDialog.DialogCode.Accepted)
         self.assertEqual(self.db.get(card.id).meaning, "新的人工中文释义")
         self.assertEqual(self.db.get(card.id).status, "完全记不得")
+
+    def test_pos_visible_on_word_cards_hidden_on_phrases_and_editable(self):
+        key = self.db.add(Card("example", "示例", pos="n."))
+        word = self.db.get(key)
+        word.pos = "v."
+        self.db.update(word.id, word)
+        page = self.start()
+        page.session.cards[0] = self.db.get(word.id)
+        page.render()
+        self.assertTrue(page.pos_label.isVisible())
+        self.assertEqual(page.pos_label.text(), "v.")
+        page.flip()
+        self.assertTrue(page.pos_label.isVisible())
+        phrase = self.db.list_cards(search="test word 000")[0]
+        page.session.cards[0] = phrase
+        page.render()
+        self.assertFalse(page.pos_label.isVisible())
+        dialog = CardDialog(self.db, self.speech, word, self.window)
+        dialog.fields["pos"].setCurrentText("n.; v.")
+        dialog.save()
+        self.assertEqual(self.db.get(word.id).pos, "n.; v.")
+        phrase_dialog = CardDialog(self.db, self.speech, phrase, self.window)
+        self.assertFalse(phrase_dialog.fields["pos"].isEnabled())
+        self.assertEqual(phrase_dialog.value("pos"), "")
+        phrase_dialog.reject()
 
     def test_category_filters_and_counts(self):
         self.db.record(self.db.list_cards()[0].id, "已掌握")

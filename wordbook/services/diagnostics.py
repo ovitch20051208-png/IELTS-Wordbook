@@ -6,6 +6,7 @@ from PySide6.QtCore import QTimer
 from wordbook.importer.txt import parse_file
 from wordbook.paths import bundled_wordlist
 from wordbook import __version__
+from wordbook.models.card import Card, is_phrase
 
 
 def schedule_self_check(app, window, directory):
@@ -36,10 +37,26 @@ def schedule_self_check(app, window, directory):
             repeated = window.db.import_cards(parsed.cards)
             result.update(imported=imported, repeated=repeated,
                           all_ipa_filled=all(card.ipa for card in window.db.list_cards()))
+            result["pos_correct"] = all(card.pos if not is_phrase(card.word) else not card.pos
+                                        for card in window.db.list_cards())
             page = window.review
             window.tabs.setCurrentIndex(2)
             page.count.setValue(len(parsed.cards))
             page.start(False)
+            word_card = window.db.get(page.session.cards[0].id)
+            page.render()
+            result["word_pos_visible"] = page.pos_label.isVisible() and page.pos_label.text() == word_card.pos
+            window.grab().save(str(directory / "word_pos_front.png"))
+            page.flip()
+            result["word_pos_visible_on_back"] = page.pos_label.isVisible()
+            window.grab().save(str(directory / "word_pos_back.png"))
+            page.flip()
+            # A temporary in-memory card checks phrase display without seeding another word.
+            page.session.cards[0] = Card("read aloud", "朗读", pos="v.")
+            page.render()
+            result["phrase_pos_hidden"] = not page.pos_label.isVisible()
+            page.session.cards[0] = word_card
+            page.render()
             checks = []
             for back in (False, True):
                 for i, status in enumerate(("已掌握", "有一点印象", "完全记不得")):
@@ -56,7 +73,9 @@ def schedule_self_check(app, window, directory):
             window.grab().save(str(directory / "self_check.png"))
             result["success"] = (result["initial_cards"] == 0 and result["initial_history"] == 0
                                  and result["initial_sessions"] == 0 and len(parsed.cards) == 8 and not parsed.errors and not errors
-                                 and result["all_ipa_filled"] and repeated["新增"] == 0 and all(checks))
+                                 and result["all_ipa_filled"] and repeated["新增"] == 0 and all(checks)
+                                 and result["pos_correct"] and result["word_pos_visible"]
+                                 and result["word_pos_visible_on_back"] and result["phrase_pos_hidden"])
         except Exception as exc:
             result.update(success=False, error=repr(exc))
         (directory / "self_check.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
